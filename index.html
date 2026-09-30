@@ -38,8 +38,8 @@ h1{font-weight:500;font-size:clamp(2.2rem,10vw,3.2rem);line-height:1.05;letter-s
 .pad{--p:0;position:relative;width:min(72vw,17rem);aspect-ratio:1;border-radius:50%;border:0;cursor:pointer;
   background:conic-gradient(var(--ink) calc(var(--p)*1turn),var(--soft) 0);padding:0;touch-action:manipulation;
   -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-.pad .face{position:absolute;inset:7px;border-radius:50%;background:var(--ink);color:var(--on-ink);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .12s ease-out}
+.pad .face{position:absolute;inset:7px;border-radius:50%;background:var(--ink);color:var(--on-ink);transition:background-color .9s ease, transform .12s ease-out;
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
 .pad:active .face{transform:scale(.97)}
 .pad .num{font-size:clamp(4rem,22vw,6rem);line-height:1;font-weight:500}
 .pad .lbl{font-size:clamp(1.8rem,9vw,2.6rem);letter-spacing:.16em;text-transform:uppercase;font-weight:500}
@@ -47,7 +47,8 @@ h1{font-weight:500;font-size:clamp(2.2rem,10vw,3.2rem);line-height:1.05;letter-s
 .pad .frag{display:none;height:78%;width:auto;max-width:64%}
 .pad.busy .face{background:#fff}
 .pad.busy .lbl{display:none}
-.pad.busy .frag{display:block;animation:fadein .35s ease-out}
+.pad.busy .frag{display:block}
+.pad .lbl{animation:fadein .9s ease-out}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
 :lang(ja) .pad .lbl{letter-spacing:.05em;text-transform:none}
 .pad[disabled]{cursor:default;opacity:.45}
@@ -101,7 +102,8 @@ const FRAG={"1": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASIAAAGICAIAAABq
 const TITLE   = "The Present in Relief";  // 作品タイトル
 const PARTS   = 4;
 const FILE    = n => `part${n}.mp3`;   // 録音ファイル名（part1.mp3 〜 part4.mp3）
-const OVERLAP = true;   // true: タップのたびに重ねて再生 / false: 前の再生を止めて頭から
+const OVERLAP = true;
+const FADE    = 15;      // 楽譜が消えていく時間（録音の最後の何秒で薄れていくか）   // true: タップのたびに重ねて再生 / false: 前の再生を止めて頭から
 /* ======================================================== */
 
 const T={
@@ -135,8 +137,12 @@ function decode(ab){return new Promise((res,rej)=>{const p=ctx.decodeAudioData(a
 async function load(n){
   if(buffers[n])return buffers[n];
   const src=(window.EMBEDDED&&window.EMBEDDED[n])?window.EMBEDDED[n]:FILE(n);
-  const r=await fetch(src); if(!r.ok)throw new Error(r.status);
-  buffers[n]=await decode(await r.arrayBuffer()); return buffers[n];
+  let ab;
+  if(src.startsWith("data:")){            // embedded audio (preview): decode locally, no network request
+    const bin=atob(src.slice(src.indexOf(",")+1)); const u=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); ab=u.buffer;
+  }else{ const r=await fetch(src); if(!r.ok)throw new Error(r.status); ab=await r.arrayBuffer(); }
+  buffers[n]=await decode(ab); return buffers[n];
 }
 async function choose(n){          // n = 1..PARTS, or 0 = a random recording on every tap
   part=n; setLabel(); $("pad").disabled=true; setStatus("loading");
@@ -154,7 +160,7 @@ function play(){
   if(voices.length) return;                 // wait until the current recording has finished
   const which = part===0 ? 1+Math.floor(Math.random()*PARTS) : part;
   const buf=buffers[which]; if(!buf)return;
-  $("frag").src=FRAG[which]; $("frag").alt="Fragment "+which;
+  $("frag").src=FRAG[which]; $("frag").alt="Fragment "+which; $("frag").style.opacity=1;
   ctx.resume(); keepAwake();
   if(!OVERLAP){ voices.forEach(v=>{try{v.src.stop()}catch(e){}}); voices=[]; }
   const src=ctx.createBufferSource(); src.buffer=buf; src.connect(ctx.destination);
@@ -168,6 +174,7 @@ let raf=0;
 function draw(){ // ring shows progress of the most recent playback
   const v=voices[voices.length-1];
   $("pad").style.setProperty("--p", v? Math.min(1,Math.max(0,(ctx.currentTime-v.t0)/v.dur)) : 0);
+  if(v){ const left=v.t0+v.dur-ctx.currentTime; $("frag").style.opacity=Math.max(0,Math.min(1,left/FADE)); }
   raf = voices.length ? requestAnimationFrame(draw) : 0;
   if(!raf) $("pad").style.setProperty("--p",0);
 }
