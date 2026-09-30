@@ -29,7 +29,7 @@ main{max-width:34rem;margin:0 auto;padding:1.25rem 1.375rem 3rem}
 .lang[aria-pressed="true"]{color:var(--text);text-decoration:underline;text-underline-offset:.3em}
 button:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 h1{font-weight:500;font-size:clamp(2.2rem,10vw,3.2rem);line-height:1.05;letter-spacing:-.02em;margin:.5rem 0 .4rem}
-.ded{font-style:italic;color:var(--muted);font-size:1rem;margin:2rem 0 0}
+.ded{font-style:italic;color:var(--muted);font-size:1rem;margin:1.2rem 0 0}
 .sub{font-style:italic;color:var(--muted);margin:0 0 .4rem}
 .composer{text-align:right;margin:0 0 1.8rem;letter-spacing:.04em}
 :lang(ja) .sub{font-style:normal}
@@ -62,9 +62,13 @@ ol li::before{content:counter(s);position:absolute;left:0;top:.75rem;font-size:1
 </head>
 <body>
 <main>
+  <div class="top" role="group" aria-label="Language">
+    <button class="lang" data-l="en">English</button>
+    <button class="lang" data-l="sv">Svenska</button>
+  </div>
   <p class="ded">dedicated to Satoko Inoue</p>
   <h1 id="title"></h1>
-  <p class="sub" data-t="sub"></p>
+  <p class="sub">for Piano and Its Listeners</p>
   <p class="composer">Yohan KIM</p>
 
   <section class="choose" id="choose">
@@ -101,15 +105,18 @@ const T={
   s3:"During the performance, tap the button whenever you like. Each tap plays your part, a short piano recording, from the beginning.",
   s4:"Please don\u2019t tap before the performance begins.",
   loading:"Loading\u2026",ready:"Ready.",playing:"Playing.",pick:"Please choose a part above.",
-  error:"The recording could not be loaded. Please reload the page.",noaudio:"This browser can\u2019t play the piece. Please try Safari or Chrome."}
+  error:"The recording could not be loaded. Please reload the page.",noaudio:"This browser can\u2019t play the piece. Please try Safari or Chrome."},
+ sv:{"choose": "Välj din stämma", "part": "Stämma", "s1": "Skanna QR-koden på ditt kort och öppna sidan. Vänta tills ditt stämnummer visas på knappen.", "s2": "Skruva upp volymen helt och slå på ”Stör ej”. På en iPhone, se till att ljudlöst läge är avstängt. Använd inte hörlurar eller Bluetooth-högtalare.", "s3": "Under framförandet kan du trycka på knappen när du vill. Varje tryck spelar din stämma, en kort pianoinspelning, från början.", "s4": "Tryck inte på knappen innan framförandet har börjat.", "loading": "Laddar …", "ready": "Redo.", "playing": "Spelar.", "pick": "Välj en stämma ovan.", "error": "Inspelningen kunde inte laddas. Ladda om sidan.", "noaudio": "Den här webbläsaren kan inte spela upp verket. Prova Safari eller Chrome."}
 };
 const $=id=>document.getElementById(id);
-let lang="en";
+let lang=(navigator.language||"en").toLowerCase().startsWith("sv")?"sv":"en";
 let statusKey="loading";
 function setStatus(k){statusKey=k;$("status").textContent=T[lang][k]||"";}
 function setLang(l){lang=l;document.documentElement.lang=l;
   document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T[l][e.dataset.t]);
+  document.querySelectorAll(".lang").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===l));
   setStatus(statusKey);}
+document.querySelectorAll(".lang").forEach(b=>b.onclick=()=>setLang(b.dataset.l));
 $("title").textContent=TITLE; document.title=TITLE;
 
 /* ---------- audio ---------- */
