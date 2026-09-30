@@ -51,7 +51,7 @@ h1{font-weight:500;font-size:clamp(2.2rem,10vw,3.2rem);line-height:1.05;letter-s
 .status{margin:1rem 0 0;color:var(--muted);font-size:1rem;min-height:1.6em;text-align:center}
 .choose{margin:0 0 2rem}
 .choose h2{font-size:1.1rem;font-weight:500;margin:0 0 .7rem}
-.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem}
+.chips{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem}
 .chip{height:3.4rem;border-radius:1.7rem;border:1px solid var(--line);background:none;color:var(--text);font:inherit;font-size:1.4rem;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
 ol{margin:0;padding:0;list-style:none;counter-reset:s}
@@ -99,14 +99,14 @@ const OVERLAP = true;   // true: タップのたびに重ねて再生 / false: �
 /* ======================================================== */
 
 const T={
- en:{sub:"for Piano and Its Listeners",choose:"Choose your part",part:"Part",
+ en:{sub:"for Piano and Its Listeners",choose:"Choose your part",part:"Part",random:"Random",
   s1:"Scan the QR code on your card and open the page. Wait until your part number appears on the button.",
   s2:"Turn your volume all the way up and switch on \u201cDo Not Disturb.\u201d On an iPhone, please make sure silent mode is off. Please don\u2019t use headphones or Bluetooth speakers.",
   s3:"During the performance, tap the button whenever you like. Each tap plays your part, a short piano recording, from the beginning.",
   s4:"Please don\u2019t tap before the performance begins.",
   loading:"Loading\u2026",ready:"Ready.",playing:"Playing.",pick:"Please choose a part above.",
   error:"The recording could not be loaded. Please reload the page.",noaudio:"This browser can\u2019t play the piece. Please try Safari or Chrome."},
- sv:{"choose": "Välj din stämma", "part": "Stämma", "s1": "Skanna QR-koden på ditt kort och öppna sidan. Vänta tills ditt stämnummer visas på knappen.", "s2": "Skruva upp volymen helt och slå på ”Stör ej”. På en iPhone, se till att ljudlöst läge är avstängt. Använd inte hörlurar eller Bluetooth-högtalare.", "s3": "Under framförandet kan du trycka på knappen när du vill. Varje tryck spelar din stämma, en kort pianoinspelning, från början.", "s4": "Tryck inte på knappen innan framförandet har börjat.", "loading": "Laddar …", "ready": "Redo.", "playing": "Spelar.", "pick": "Välj en stämma ovan.", "error": "Inspelningen kunde inte laddas. Ladda om sidan.", "noaudio": "Den här webbläsaren kan inte spela upp verket. Prova Safari eller Chrome."}
+ sv:{"choose": "Välj din stämma", "part": "Stämma", "random": "Slump", "s1": "Skanna QR-koden på ditt kort och öppna sidan. Vänta tills ditt stämnummer visas på knappen.", "s2": "Skruva upp volymen helt och slå på ”Stör ej”. På en iPhone, se till att ljudlöst läge är avstängt. Använd inte hörlurar eller Bluetooth-högtalare.", "s3": "Under framförandet kan du trycka på knappen när du vill. Varje tryck spelar din stämma, en kort pianoinspelning, från början.", "s4": "Tryck inte på knappen innan framförandet har börjat.", "loading": "Laddar …", "ready": "Redo.", "playing": "Spelar.", "pick": "Välj en stämma ovan.", "error": "Inspelningen kunde inte laddas. Ladda om sidan.", "noaudio": "Den här webbläsaren kan inte spela upp verket. Prova Safari eller Chrome."}
 };
 const $=id=>document.getElementById(id);
 let lang=(navigator.language||"en").toLowerCase().startsWith("sv")?"sv":"en";
@@ -115,7 +115,8 @@ function setStatus(k){statusKey=k;$("status").textContent=T[lang][k]||"";}
 function setLang(l){lang=l;document.documentElement.lang=l;
   document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T[l][e.dataset.t]);
   document.querySelectorAll(".lang").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===l));
-  setStatus(statusKey);}
+  setStatus(statusKey); setLabel();}
+function setLabel(){ const l=document.querySelector(".pad .lbl"); if(l) l.textContent = part===0 ? T[lang].random : T[lang].part; }
 document.querySelectorAll(".lang").forEach(b=>b.onclick=()=>setLang(b.dataset.l));
 $("title").textContent=TITLE; document.title=TITLE;
 
@@ -131,18 +132,21 @@ async function load(n){
   const r=await fetch(src); if(!r.ok)throw new Error(r.status);
   buffers[n]=await decode(await r.arrayBuffer()); return buffers[n];
 }
-async function choose(n){
-  part=n; $("num").textContent=n; $("pad").disabled=true; setStatus("loading");
+async function choose(n){          // n = 1..PARTS, or 0 = a random recording on every tap
+  part=n; $("num").textContent = n===0 ? "?" : n; setLabel(); $("pad").disabled=true; setStatus("loading");
   document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",+c.dataset.n===n));
-  try{ await load(n); if(part===n){$("pad").disabled=false; setStatus("ready");} }
-  catch(e){ if(part===n) setStatus("error"); }
+  try{
+    if(n===0){ for(let k=1;k<=PARTS;k++) await load(k); } else await load(n);
+    if(part===n){$("pad").disabled=false; setStatus("ready");}
+  }catch(e){ if(part===n) setStatus("error"); }
 }
 async function keepAwake(){ try{ if("wakeLock" in navigator && !wakeLock){ wakeLock=await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release",()=>wakeLock=null);} }catch(e){} }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"&&ctx&&ctx.state!=="running") ctx.resume(); });
 
 function play(){
   if(!ctx){alert(T[lang].noaudio);return}
-  const buf=buffers[part]; if(!buf)return;
+  const which = part===0 ? 1+Math.floor(Math.random()*PARTS) : part;
+  const buf=buffers[which]; if(!buf)return;
   ctx.resume(); keepAwake();
   if(!OVERLAP){ voices.forEach(v=>{try{v.src.stop()}catch(e){}}); voices=[]; }
   const src=ctx.createBufferSource(); src.buffer=buf; src.connect(ctx.destination);
@@ -165,10 +169,13 @@ $("pad").addEventListener("click",play);
 const chips=$("chips");
 for(let n=1;n<=PARTS;n++){const b=document.createElement("button");b.className="chip";b.dataset.n=n;b.textContent=n;
   b.setAttribute("aria-pressed","false"); b.onclick=()=>choose(n); chips.appendChild(b);}
-const qp=parseInt(new URLSearchParams(location.search).get("part"),10);
+{const b=document.createElement("button");b.className="chip";b.dataset.n=0;b.textContent="?";b.setAttribute("aria-label","Random");
+  b.setAttribute("aria-pressed","false"); b.onclick=()=>choose(0); chips.appendChild(b);}
+const qraw=(new URLSearchParams(location.search).get("part")||"").toLowerCase();
+const qp = (qraw==="random"||qraw==="0") ? 0 : parseInt(qraw,10);
 setLang(lang);
 if(!AC){ setStatus("noaudio"); }
-else if(qp>=1&&qp<=PARTS){ $("choose").hidden=true; choose(qp); }
+else if(qp===0||(qp>=1&&qp<=PARTS)){ choose(qp); }   // QR preselects a part; the menu stays so it can be changed
 else { setStatus("pick"); }
 </script>
 </body>
