@@ -9,14 +9,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#EDF2F7; --ink:#23307F; --soft:#C4E4F4; --text:#1B1F2E; --muted:#596077; --line:#C9D3E0; --on-ink:#F4F7FB;
+  --bg:#EDF2F7; --ink:#23307F; --soft:#C4E4F4; --text:#1B1F2E; --muted:#596077; --line:#C9D3E0; --on-ink:#F4F7FB; --ink-dim:#7C86B8;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){--bg:#10152C;--ink:#9FB0FF;--soft:#24315C;--text:#E6EAF5;--muted:#9AA3BD;--line:#2C3659;--on-ink:#10152C}
+  :root:not([data-theme="light"]){--bg:#10152C;--ink:#9FB0FF;--soft:#24315C;--text:#E6EAF5;--muted:#9AA3BD;--line:#2C3659;--on-ink:#10152C;--ink-dim:#5A6699}
 }
-:root[data-theme="dark"]{--bg:#10152C;--ink:#9FB0FF;--soft:#24315C;--text:#E6EAF5;--muted:#9AA3BD;--line:#2C3659;--on-ink:#10152C}
+:root[data-theme="dark"]{--bg:#10152C;--ink:#9FB0FF;--soft:#24315C;--text:#E6EAF5;--muted:#9AA3BD;--line:#2C3659;--on-ink:#10152C;--ink-dim:#5A6699}
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 html,body{margin:0}
@@ -42,12 +42,15 @@ h1{font-weight:500;font-size:clamp(2.2rem,10vw,3.2rem);line-height:1.05;letter-s
   display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .12s ease-out}
 .pad:active .face{transform:scale(.97)}
 .pad .num{font-size:clamp(4rem,22vw,6rem);line-height:1;font-weight:500}
-.pad .lbl{font-size:1rem;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+.pad .lbl{font-size:clamp(1.8rem,9vw,2.6rem);letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+.pad.busy{cursor:default}
+.pad.busy .face{background:var(--ink-dim)}
 :lang(ja) .pad .lbl{letter-spacing:.05em;text-transform:none}
 .pad[disabled]{cursor:default;opacity:.45}
 .ripple{position:absolute;inset:0;border-radius:50%;border:2px solid var(--ink);pointer-events:none;animation:rip 1.1s ease-out forwards}
 @keyframes rip{from{transform:scale(1);opacity:.7}to{transform:scale(1.35);opacity:0}}
 @media (prefers-reduced-motion:reduce){.ripple{display:none}.pad .face{transition:none}}
+.cue{margin:0 0 1.1rem;text-align:center;font-size:1.25rem;line-height:1.4;max-width:22rem}
 .status{margin:1rem 0 0;color:var(--muted);font-size:1rem;min-height:1.6em;text-align:center}
 .choose{margin:0 0 2rem}
 .choose h2{font-size:1.1rem;font-weight:500;margin:0 0 .7rem}
@@ -73,8 +76,9 @@ ol li::before{content:counter(s);position:absolute;left:0;top:.75rem;font-size:1
 
 
   <div class="stage">
+    <p class="cue" data-t="cue"></p>
     <button class="pad" id="pad" disabled aria-describedby="status">
-      <span class="face"><span class="lbl" data-t="part"></span><span class="num" id="num">–</span></span>
+      <span class="face"><span class="lbl" data-t="random"></span></span>
     </button>
     <p class="status" id="status" role="status" aria-live="polite"></p>
   </div>
@@ -95,14 +99,14 @@ const OVERLAP = true;   // true: タップのたびに重ねて再生 / false: �
 /* ======================================================== */
 
 const T={
- en:{sub:"for Piano and Its Listeners",choose:"Choose your part",part:"Part",random:"Play",
+ en:{sub:"for Piano and Its Listeners",choose:"Choose your part",part:"Part",random:"Play",cue:"Listen to the piano, and tap PLAY to respond.",
   s1:"Scan the QR code and open the page. Wait until \u201cReady.\u201d appears below the button.",
   s2:"Turn your volume all the way up and switch on \u201cDo Not Disturb.\u201d On an iPhone, please make sure silent mode is off. Please don\u2019t use headphones or Bluetooth speakers.",
-  s3:"During the performance, tap the button whenever you like. Each tap plays one of four short piano recordings, chosen at random.",
+  s3:"During the performance, listen to the piano and tap PLAY as if you were answering it. Each tap plays one of four short piano recordings, chosen at random. You can tap again once the recording has finished.",
   s4:"Please don\u2019t tap before the performance begins.",
   loading:"Loading\u2026",ready:"Ready.",playing:"Playing.",pick:"Please choose a part above.",
   error:"The recording could not be loaded. Please reload the page.",noaudio:"This browser can\u2019t play the piece. Please try Safari or Chrome."},
- sv:{"choose": "Välj din stämma", "part": "Stämma", "random": "Spela", "s1": "Skanna QR-koden och öppna sidan. Vänta tills ”Redo.” visas under knappen.", "s2": "Skruva upp volymen helt och slå på ”Stör ej”. På en iPhone, se till att ljudlöst läge är avstängt. Använd inte hörlurar eller Bluetooth-högtalare.", "s3": "Under framförandet kan du trycka på knappen när du vill. Varje tryck spelar en av fyra korta pianoinspelningar, vald slumpmässigt.", "s4": "Tryck inte på knappen innan framförandet har börjat.", "loading": "Laddar …", "ready": "Redo.", "playing": "Spelar.", "pick": "Välj en stämma ovan.", "error": "Inspelningen kunde inte laddas. Ladda om sidan.", "noaudio": "Den här webbläsaren kan inte spela upp verket. Prova Safari eller Chrome."}
+ sv:{"choose": "Välj din stämma", "part": "Stämma", "random": "Spela", "cue": "Lyssna på pianot och tryck på SPELA för att svara.", "s1": "Skanna QR-koden och öppna sidan. Vänta tills ”Redo.” visas under knappen.", "s2": "Skruva upp volymen helt och slå på ”Stör ej”. På en iPhone, se till att ljudlöst läge är avstängt. Använd inte hörlurar eller Bluetooth-högtalare.", "s3": "Lyssna på pianot under framförandet och tryck på SPELA som ett svar på det du hör. Varje tryck spelar en av fyra korta pianoinspelningar, vald slumpmässigt. Du kan trycka igen när inspelningen har spelat klart.", "s4": "Tryck inte på knappen innan framförandet har börjat.", "loading": "Laddar …", "ready": "Redo.", "playing": "Spelar.", "pick": "Välj en stämma ovan.", "error": "Inspelningen kunde inte laddas. Ladda om sidan.", "noaudio": "Den här webbläsaren kan inte spela upp verket. Prova Safari eller Chrome."}
 };
 const $=id=>document.getElementById(id);
 let lang=(navigator.language||"en").toLowerCase().startsWith("sv")?"sv":"en";
@@ -129,7 +133,7 @@ async function load(n){
   buffers[n]=await decode(await r.arrayBuffer()); return buffers[n];
 }
 async function choose(n){          // n = 1..PARTS, or 0 = a random recording on every tap
-  part=n; $("num").textContent = n===0 ? "?" : n; setLabel(); $("pad").disabled=true; setStatus("loading");
+  part=n; setLabel(); $("pad").disabled=true; setStatus("loading");
   document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",+c.dataset.n===n));
   try{
     if(n===0){ for(let k=1;k<=PARTS;k++) await load(k); } else await load(n);
@@ -141,14 +145,15 @@ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==
 
 function play(){
   if(!ctx){alert(T[lang].noaudio);return}
+  if(voices.length) return;                 // wait until the current recording has finished
   const which = part===0 ? 1+Math.floor(Math.random()*PARTS) : part;
   const buf=buffers[which]; if(!buf)return;
   ctx.resume(); keepAwake();
   if(!OVERLAP){ voices.forEach(v=>{try{v.src.stop()}catch(e){}}); voices=[]; }
   const src=ctx.createBufferSource(); src.buffer=buf; src.connect(ctx.destination);
   const v={src,t0:ctx.currentTime+.01,dur:buf.duration}; src.start(v.t0);
-  src.onended=()=>{voices=voices.filter(x=>x!==v); if(!voices.length)setStatus("ready");};
-  voices.push(v); setStatus("playing");
+  src.onended=()=>{voices=voices.filter(x=>x!==v); if(!voices.length){setStatus("ready"); $("pad").classList.remove("busy"); $("pad").removeAttribute("aria-disabled");}};
+  voices.push(v); setStatus("playing"); $("pad").classList.add("busy"); $("pad").setAttribute("aria-disabled","true");
   const r=document.createElement("span"); r.className="ripple"; $("pad").appendChild(r); setTimeout(()=>r.remove(),1200);
   if(!raf) raf=requestAnimationFrame(draw);
 }
