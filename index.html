@@ -71,10 +71,6 @@ ol li::before{content:counter(s);position:absolute;left:0;top:.75rem;font-size:1
   <p class="sub">for Piano and Its Listeners</p>
   <p class="composer">Yohan KIM</p>
 
-  <section class="choose" id="choose">
-    <h2 data-t="choose"></h2>
-    <div class="chips" id="chips"></div>
-  </section>
 
   <div class="stage">
     <button class="pad" id="pad" disabled aria-describedby="status">
@@ -99,14 +95,14 @@ const OVERLAP = true;   // true: タップのたびに重ねて再生 / false: �
 /* ======================================================== */
 
 const T={
- en:{sub:"for Piano and Its Listeners",choose:"Choose your part",part:"Part",random:"Random",
-  s1:"Scan the QR code on your card and open the page. Wait until your part number appears on the button.",
+ en:{sub:"for Piano and Its Listeners",choose:"Choose your part",part:"Part",random:"Play",
+  s1:"Scan the QR code and open the page. Wait until \u201cReady.\u201d appears below the button.",
   s2:"Turn your volume all the way up and switch on \u201cDo Not Disturb.\u201d On an iPhone, please make sure silent mode is off. Please don\u2019t use headphones or Bluetooth speakers.",
-  s3:"During the performance, tap the button whenever you like. Each tap plays your part, a short piano recording, from the beginning.",
+  s3:"During the performance, tap the button whenever you like. Each tap plays one of four short piano recordings, chosen at random.",
   s4:"Please don\u2019t tap before the performance begins.",
   loading:"Loading\u2026",ready:"Ready.",playing:"Playing.",pick:"Please choose a part above.",
   error:"The recording could not be loaded. Please reload the page.",noaudio:"This browser can\u2019t play the piece. Please try Safari or Chrome."},
- sv:{"choose": "Välj din stämma", "part": "Stämma", "random": "Slump", "s1": "Skanna QR-koden på ditt kort och öppna sidan. Vänta tills ditt stämnummer visas på knappen.", "s2": "Skruva upp volymen helt och slå på ”Stör ej”. På en iPhone, se till att ljudlöst läge är avstängt. Använd inte hörlurar eller Bluetooth-högtalare.", "s3": "Under framförandet kan du trycka på knappen när du vill. Varje tryck spelar din stämma, en kort pianoinspelning, från början.", "s4": "Tryck inte på knappen innan framförandet har börjat.", "loading": "Laddar …", "ready": "Redo.", "playing": "Spelar.", "pick": "Välj en stämma ovan.", "error": "Inspelningen kunde inte laddas. Ladda om sidan.", "noaudio": "Den här webbläsaren kan inte spela upp verket. Prova Safari eller Chrome."}
+ sv:{"choose": "Välj din stämma", "part": "Stämma", "random": "Spela", "s1": "Skanna QR-koden och öppna sidan. Vänta tills ”Redo.” visas under knappen.", "s2": "Skruva upp volymen helt och slå på ”Stör ej”. På en iPhone, se till att ljudlöst läge är avstängt. Använd inte hörlurar eller Bluetooth-högtalare.", "s3": "Under framförandet kan du trycka på knappen när du vill. Varje tryck spelar en av fyra korta pianoinspelningar, vald slumpmässigt.", "s4": "Tryck inte på knappen innan framförandet har börjat.", "loading": "Laddar …", "ready": "Redo.", "playing": "Spelar.", "pick": "Välj en stämma ovan.", "error": "Inspelningen kunde inte laddas. Ladda om sidan.", "noaudio": "Den här webbläsaren kan inte spela upp verket. Prova Safari eller Chrome."}
 };
 const $=id=>document.getElementById(id);
 let lang=(navigator.language||"en").toLowerCase().startsWith("sv")?"sv":"en";
@@ -165,18 +161,9 @@ function draw(){ // ring shows progress of the most recent playback
 }
 $("pad").addEventListener("click",play);
 
-/* ---------- part assignment: ?part=1..4 from the QR, otherwise choose on the page ---------- */
-const chips=$("chips");
-for(let n=1;n<=PARTS;n++){const b=document.createElement("button");b.className="chip";b.dataset.n=n;b.textContent=n;
-  b.setAttribute("aria-pressed","false"); b.onclick=()=>choose(n); chips.appendChild(b);}
-{const b=document.createElement("button");b.className="chip";b.dataset.n=0;b.textContent="?";b.setAttribute("aria-label","Random");
-  b.setAttribute("aria-pressed","false"); b.onclick=()=>choose(0); chips.appendChild(b);}
-const qraw=(new URLSearchParams(location.search).get("part")||"").toLowerCase();
-const qp = (qraw==="random"||qraw==="0") ? 0 : parseInt(qraw,10);
+/* ---------- no choice: every tap plays one of the four recordings at random (any ?part= in the URL is ignored) ---------- */
 setLang(lang);
-if(!AC){ setStatus("noaudio"); }
-else if(qp===0||(qp>=1&&qp<=PARTS)){ choose(qp); }   // QR preselects a part; the menu stays so it can be changed
-else { setStatus("pick"); }
+if(!AC){ setStatus("noaudio"); } else { choose(0); }
 </script>
 </body>
 </html>
